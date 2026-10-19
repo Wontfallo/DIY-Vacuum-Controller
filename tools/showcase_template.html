@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vacuum Controller Build</title>
+<style>
+:root{
+  --bg:#f4f5f7;--surface:#ffffff;--surface-2:#eef0f3;--text:#15171b;--muted:#5d6472;--line:#e1e4e9;
+  --accent:#e0561d;--accent-soft:#fde9df;--blue:#2563eb;--ok:#15803d;--ok-soft:#dcfce7;--warn:#b45309;--warn-soft:#fef3c7;--bad:#dc2626;--bad-soft:#fee2e2;
+  --w12:#dc2626;--w5:#ea7a0c;--wsig:#2563eb;--wload:#7c3aed;--wgnd:#6b7280;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1013;--surface:#171a1f;--surface-2:#1f2329;--text:#ecedf0;--muted:#9aa1ad;--line:#2a2f37;
+  --accent:#ff7a3d;--accent-soft:#3a2216;--blue:#60a5fa;--ok:#4ade80;--ok-soft:#14321f;--warn:#fbbf24;--warn-soft:#3a2e10;--bad:#f87171;--bad-soft:#3b1717;
+  --w12:#f87171;--w5:#fb923c;--wsig:#60a5fa;--wload:#a78bfa;--wgnd:#8b93a1;--shadow:none}}
+:root[data-theme="dark"]{
+  --bg:#0e1013;--surface:#171a1f;--surface-2:#1f2329;--text:#ecedf0;--muted:#9aa1ad;--line:#2a2f37;
+  --accent:#ff7a3d;--accent-soft:#3a2216;--blue:#60a5fa;--ok:#4ade80;--ok-soft:#14321f;--warn:#fbbf24;--warn-soft:#3a2e10;--bad:#f87171;--bad-soft:#3b1717;
+  --w12:#f87171;--w5:#fb923c;--wsig:#60a5fa;--wload:#a78bfa;--wgnd:#8b93a1;--shadow:none}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+a{color:var(--blue)}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hwrap{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{font-weight:700;white-space:nowrap}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:8px;font-size:14px;white-space:nowrap}
+nav a:hover,nav a.on{background:var(--surface-2);color:var(--text)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
+main{max-width:1240px;margin:0 auto;padding:8px 16px 80px}
+section{padding:36px 0 8px}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 10px;letter-spacing:-.01em}
+h2{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
+h3{font-size:16px;margin:0 0 6px}
+.lede{color:var(--muted);margin:0 0 18px;max-width:760px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.pad{padding:16px}
+.grid{display:grid;gap:14px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+.pill.printed{background:var(--accent-soft);color:var(--accent)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;color:var(--text);padding:6px 11px;border-radius:8px;font:inherit;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--surface);box-shadow:var(--shadow);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px}
+pre{margin:0;padding:14px;overflow:auto;background:var(--surface-2);border-radius:10px;line-height:1.5}
+.copyrow{display:flex;gap:8px;align-items:stretch;margin:8px 0}
+.copyrow pre{flex:1;padding:10px 12px;white-space:pre-wrap;word-break:break-all}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:22px;align-items:center;padding-top:28px}
+.hero video,.hero img{width:100%;border-radius:var(--radius);display:block;background:#000;aspect-ratio:16/9;object-fit:cover}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:18px}
+.stat{padding:12px 14px}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:22px}
+.toc a{text-decoration:none;color:var(--text);padding:12px 14px}
+.toc a:hover{border-color:var(--accent)}
+.toc small{display:block;color:var(--muted)}
+
+/* 3D */
+.viewer-layout{display:grid;grid-template-columns:1fr 290px;gap:14px}
+.viewer{position:relative;height:560px;overflow:hidden;border-radius:var(--radius);background:radial-gradient(ellipse at 50% 40%,var(--surface) 0%,var(--surface-2) 100%);border:1px solid var(--line)}
+.viewer canvas{width:100%!important;height:100%!important;display:block;touch-action:none}
+.viewer .hud{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.viewer .hud>*{pointer-events:auto}
+.viewer .readout{position:absolute;right:12px;top:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-variant-numeric:tabular-nums;display:none}
+.viewer .readout b{font-size:22px}
+.viewer .hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);pointer-events:none}
+.viewer .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.controls label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+input[type=range]{accent-color:var(--accent)}
+.side{display:flex;flex-direction:column;gap:12px;min-height:0}
+.info h3{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.partlist{max-height:330px;overflow:auto;padding:6px}
+.partlist .grp{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 8px 4px}
+.partlist button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;color:var(--text);padding:6px 8px;border-radius:7px;font:inherit;font-size:13px;cursor:pointer}
+.partlist button:hover,.partlist button.on{background:var(--surface-2)}
+.sw{width:11px;height:11px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.15)}
+
+/* print */
+.print-layout{display:grid;grid-template-columns:260px 1fr;gap:14px}
+.plist button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--text);padding:11px 14px;font:inherit;cursor:pointer}
+.plist button:last-child{border-bottom:0}
+.plist button.on{background:var(--accent-soft)}
+.plist button small{display:block;color:var(--muted);font-size:12px}
+.pviewer{height:380px}
+.pmeta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+.pmeta div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.pmeta b{display:block;font-variant-numeric:tabular-nums}
+.pmeta span{font-size:12px;color:var(--muted)}
+
+/* bom */
+.bomtop{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bom tr.have td{opacity:.5}
+.bom tr.have td:first-child{opacity:1}
+.bom input[type=checkbox]{width:18px;height:18px;accent-color:var(--ok)}
+.money{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* diagrams */
+.diagram{padding:10px;overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:760px;height:auto}
+svg text{fill:var(--text);font:13px system-ui,-apple-system,"Segoe UI",sans-serif}
+svg .sub{fill:var(--muted);font-size:11px}
+svg .pin{fill:var(--muted);font-size:11px;font-family:ui-monospace,Consolas,monospace}
+svg .box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+svg .comp{cursor:pointer}
+svg .comp:hover .box,svg .comp.hl .box{stroke:var(--accent);stroke-width:2.5}
+svg .w{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;transition:opacity .15s}
+svg .n12v{stroke:var(--w12)} svg .n5v{stroke:var(--w5)} svg .nsig{stroke:var(--wsig)} svg .nload{stroke:var(--wload)} svg .ngnd{stroke:var(--wgnd)}
+svg.dim .w{opacity:.12} svg.dim .w.hl{opacity:1;stroke-width:4}
+svg .dot{stroke:none}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin:10px 4px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.legend i{width:18px;height:4px;border-radius:2px;display:inline-block}
+.pf{fill:none;stroke:var(--line);stroke-width:7;stroke-linecap:round}
+.pfa{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;stroke-dasharray:3 13;opacity:0}
+.pfa.on{opacity:1;animation:flow .8s linear infinite}
+.pfa.on.rev{animation-direction:reverse}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.state-tag{font-size:11px;font-weight:700}
+.st-on{fill:var(--ok)} .st-off{fill:var(--muted)} .st-closed{fill:var(--bad)} .st-open{fill:var(--ok)}
+
+/* app + chart */
+.app-layout{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+.phone{width:min(390px,100%);height:760px;border-radius:44px;border:10px solid #111;background:#111;box-shadow:0 12px 40px rgba(0,0,0,.25);overflow:hidden;margin:0 auto}
+.phone iframe{width:100%;height:100%;border:0;border-radius:34px;background:var(--bg)}
+.chart{width:100%;height:240px;display:block}
+
+/* safety + build */
+.safety{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.safety .card{padding:14px 16px}
+.safety .card b{display:block;margin-bottom:2px}
+.progress{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0 14px}
+.progress i{display:block;height:100%;background:var(--ok);width:0;transition:width .25s}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:flex-start}
+.steps li:last-child{border-bottom:0}
+.steps li.done .t{text-decoration:line-through;color:var(--muted)}
+.steps input{width:20px;height:20px;margin-top:2px;accent-color:var(--ok);flex:none}
+.steps .ph{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:700}
+.steps .d{font-size:13px;color:var(--muted)}
+.cfg .cm{color:var(--muted)} .cfg .df{color:var(--accent)} .cfg .nm{color:var(--blue)}
+.tree{font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.7;white-space:pre;overflow-x:auto}
+.warnbox{border:1px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:12px 14px;margin:12px 0}
+footer{color:var(--muted);font-size:13px;text-align:center;padding:30px 16px}
+
+@media (max-width:980px){
+  .hero,.viewer-layout,.print-layout,.app-layout{grid-template-columns:1fr}
+  .viewer{height:440px}
+  .partlist{max-height:240px}
+}
+@media (max-width:600px){
+  .viewer{height:360px}
+  .pviewer{height:300px}
+  .phone{height:680px;border-width:8px}
+  .brand{display:none}
+}
+</style>
+</head>
+<body>
+<header><div class="hwrap">
+  <div class="brand">⚙️ Vac Controller</div>
+  <nav id="nav">
+    <a href="#overview">Overview</a><a href="#model">3D model</a><a href="#print">Print</a><a href="#shop">Shopping list</a>
+    <a href="#wiring">Wiring</a><a href="#plumbing">Plumbing</a><a href="#app">Control app</a><a href="#safety">Safety</a>
+    <a href="#build">Build steps</a><a href="#files">Files</a>
+  </nav>
+  <button class="iconbtn" id="themeBtn" title="Toggle light/dark">◐</button>
+</div></header>
+
+<main>
+<!-- ============================== OVERVIEW ============================== -->
+<section id="overview" class="hero">
+  <div>
+    <h1>DIY Vacuum Controller</h1>
+    <p class="lede">An ESP32 control box that replaces the one in the AliExpress kits. It measures the actual vacuum with a pressure sensor, runs five patterns from a phone page, and stops safely when something fails. Everything for the build is on this page: the 3D model, printable parts, shopping list, wiring, firmware and a step-by-step checklist.</p>
+    <div class="stats">
+      <div class="card stat"><b id="statCost">–</b><span>parts total</span></div>
+      <div class="card stat"><b>7</b><span>3D-printed parts</span></div>
+      <div class="card stat"><b>5</b><span>patterns</span></div>
+      <div class="card stat"><b>11</b><span>safety layers</span></div>
+      <div class="card stat"><b>0</b><span>collisions in the CAD</span></div>
+    </div>
+  </div>
+  <div>
+    <video id="heroVideo" src="__VIDEO_SRC__" poster="__RENDER_SRC__" controls muted loop playsinline autoplay></video>
+    <div class="small muted" style="margin-top:6px">Blender demo: exploded view, then a running stroke cycle and STOP.</div>
+  </div>
+</section>
+<div class="toc">
+  <a class="card" href="#model"><b>3D model</b><small>Spin it, explode it, click any part</small></a>
+  <a class="card" href="#print"><b>Printable parts</b><small>Preview and download each STL</small></a>
+  <a class="card" href="#shop"><b>Shopping list</b><small>Tick off parts, with search links</small></a>
+  <a class="card" href="#wiring"><b>Wiring diagram</b><small>Hover a part to trace its wires</small></a>
+  <a class="card" href="#app"><b>Control app</b><small>Try the phone page with a simulator</small></a>
+  <a class="card" href="#build"><b>Build checklist</b><small>Saves your progress</small></a>
+</div>
+
+<!-- ============================== 3D MODEL ============================== -->
+<section id="model">
+  <h2>3D model</h2>
+  <p class="lede">The full assembly from the FreeCAD model. Orange parts are printed and the rest are the parts you buy. Drag to rotate, scroll to zoom, right-drag to pan. Click a part to see what it is.</p>
+  <div class="viewer-layout">
+    <div>
+      <div class="viewer" id="viewer">
+        <div class="loading" id="viewerLoading">Loading 3D viewer…</div>
+        <div class="hud">
+          <button class="btn" id="btnRun">▶ Run demo</button>
+          <button class="btn" id="btnLid">Hide lid</button>
+          <button class="btn" id="btnXray">X-ray</button>
+          <button class="btn" id="btnSpin">Auto-rotate</button>
+        </div>
+        <div class="readout" id="readout"><span class="small muted">Vacuum</span><br><b id="readKpa">0.0</b> <span class="small muted">kPa</span></div>
+        <div class="hint">Drag to rotate · scroll to zoom · click a part</div>
+      </div>
+      <div class="controls">
+        <label>Explode <input type="range" id="explode" min="0" max="1" step="0.01" value="0" style="width:200px"></label>
+        <div class="seg" id="showSeg"><button data-s="all" class="on">All parts</button><button data-s="printed">Printed only</button><button data-s="bought">Bought only</button></div>
+        <button class="btn" id="btnReset">Reset view</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card pad info" id="info">
+        <h3><span id="infoName">Click a part</span><span class="pill" id="infoTag"></span></h3>
+        <div class="small muted" id="infoText">Pick something in the 3D view or from the list below.</div>
+        <div id="infoExtra" class="small" style="margin-top:8px"></div>
+      </div>
+      <div class="card partlist" id="partlist"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== PRINT ============================== -->
+<section id="print">
+  <h2>Printable parts</h2>
+  <p class="lede">Each part already sits in its print orientation. Pick one to preview it on a 220 × 220 mm bed, then download its STL. Suggested settings: 0.2 mm layers, 3 walls, 20 % infill, PETG unless noted.</p>
+  <div class="print-layout">
+    <div class="card plist" id="plist"></div>
+    <div>
+      <div class="viewer pviewer" id="pviewer"><div class="loading" id="pviewerLoading">Loading…</div></div>
+      <div class="pmeta" id="pmeta"></div>
+      <div class="controls"><button class="btn primary" id="btnStl">⬇ Download STL</button><span class="small muted" id="pnote"></span></div>
+    </div>
+  </div>
+  <div class="warnbox small"><b>Never print anything that touches skin.</b> FDM prints are porous and can't be cleaned properly. Buy the cylinder and sleeves as proper silicone or TPE replacement parts.</div>
+</section>
+
+<!-- ============================== SHOP ============================== -->
+<section id="shop">
+  <h2>Shopping list</h2>
+  <p class="lede">Tick parts off as you get them; your ticks are saved in this browser. Search links open AliExpress. Measure what arrives and adjust the CAD if it differs.</p>
+  <div class="card pad">
+    <div class="bomtop">
+      <div><b id="bomTotal"></b> <span class="muted small" id="bomLeft"></span></div>
+      <div class="seg" id="bomFilter"><button data-f="all" class="on">All</button><button data-f="need">Still need</button></div>
+    </div>
+    <div class="tablewrap"><table class="bom"><thead><tr><th></th><th>Part</th><th>What to search for</th><th>Qty</th><th>Cost</th></tr></thead><tbody id="bomBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ============================== WIRING ============================== -->
+<section id="wiring">
+  <h2>Wiring</h2>
+  <p class="lede">Hover or tap a part to highlight its wires, or hover a colour in the legend. Every ground symbol (⏚) connects to the same common ground.</p>
+  <div class="card diagram">
+    <svg id="wsvg" viewBox="0 0 1040 640" role="img" aria-label="Wiring diagram">
+      <!-- wires -->
+      <g id="wires">
+        <path class="w n12v" data-net="12v" d="M130 45 H170"/>
+        <path class="w n12v" data-net="12v" d="M280 45 H310"/>
+        <path class="w n12v" data-net="12v" d="M420 45 H450"/>
+        <path class="w n12v" data-net="12v" d="M560 45 H600 V110"/>
+        <path class="w n12v" data-net="12v" d="M100 110 H1010"/>
+        <path class="w n12v" data-net="12v" d="M100 110 V150"/>
+        <path class="w n12v" data-net="12v" d="M880 110 V170"/>
+        <path class="w n12v" data-net="12v" d="M1010 110 V275 H980"/>
+        <path class="w n12v" data-net="12v" d="M990 110 V150"/>
+        <path class="w n5v" data-net="5v" d="M170 185 H260"/>
+        <path class="w n5v" data-net="5v" d="M215 185 V135 H495 V352 H520"/>
+        <path class="w nsig" data-net="io25" d="M440 200 H520"/>
+        <path class="w nsig" data-net="io26" d="M440 290 H520"/>
+        <path class="w nsig" data-net="io34" d="M440 385 H460"/>
+        <path class="w nsig" data-net="io34" d="M500 385 H520"/>
+        <path class="w nsig" data-net="io34" d="M452 385 V398"/>
+        <path class="w nsig" data-net="io27" d="M320 470 V540"/>
+        <path class="w nsig" data-net="io2" d="M400 470 V512 H540 V540"/>
+        <path class="w nload" data-net="pump" d="M680 200 H780"/>
+        <path class="w nload" data-net="pump" d="M990 186 V200 H980"/>
+        <path class="w nload" data-net="valve" d="M680 290 H780"/>
+        <path class="w ngnd" data-net="gnd" d="M225 70 V84"/>
+        <path class="w ngnd" data-net="gnd" d="M60 220 V236"/>
+        <path class="w ngnd" data-net="gnd" d="M260 225 H238 V240"/>
+        <path class="w ngnd" data-net="gnd" d="M600 235 V246"/>
+        <path class="w ngnd" data-net="gnd" d="M600 325 V336"/>
+        <path class="w ngnd" data-net="gnd" d="M600 400 V414"/>
+        <path class="w ngnd" data-net="gnd" d="M452 432 V446"/>
+        <path class="w ngnd" data-net="gnd" d="M410 565 H430"/>
+        <path class="w ngnd" data-net="gnd" d="M640 565 H660"/>
+      </g>
+      <!-- ground symbols -->
+      <g class="w ngnd" data-net="gnd" id="gsyms"></g>
+      <!-- divider resistors + flyback diode symbols -->
+      <path class="w nsig" data-net="io34" d="M460 385 l4 -6 l6 12 l6 -12 l6 12 l6 -12 l6 12 l6 -6"/>
+      <text x="466" y="372" class="sub">10k</text>
+      <path class="w nsig" data-net="io34" d="M452 398 l-6 4 l12 6 l-12 6 l12 6 l-12 6 l6 6"/>
+      <text x="462" y="420" class="sub">15k</text>
+      <circle cx="452" cy="385" r="3.5" class="dot" fill="var(--wsig)"/>
+      <path class="w nload" data-net="pump" d="M982 150 h16 l-8 14 z M982 164 h16" style="fill:var(--wload)"/>
+      <path class="w nload" data-net="pump" d="M990 164 V186"/>
+      <text x="935" y="160" class="sub">1N5819</text>
+      <circle cx="215" cy="185" r="3.5" class="dot" fill="var(--w5)"/>
+      <circle cx="600" cy="110" r="3.5" class="dot" fill="var(--w12)"/>
+      <text x="1006" y="102" text-anchor="end" style="fill:var(--w12);font-weight:700">+12 V</text>
+      <text x="300" y="129" style="fill:var(--w5);font-weight:700;font-size:12px">5 V</text>
+
+      <!-- components -->
+      <g class="comp" data-nets="12v gnd"><rect class="box" x="20" y="20" width="110" height="50" rx="9"/><text x="30" y="42">12 V adapter</text><text x="30" y="59" class="sub">UL-listed, 3 A</text></g>
+      <g class="comp" data-nets="12v gnd"><rect class="box" x="170" y="20" width="110" height="50" rx="9"/><text x="180" y="42">DC jack</text><text x="180" y="59" class="sub">5.5 × 2.1 panel</text></g>
+      <g class="comp" data-nets="12v"><rect class="box" x="310" y="20" width="110" height="50" rx="9"/><text x="320" y="42">Fuse 3 A</text><text x="320" y="59" class="sub">inline</text></g>
+      <g class="comp" data-nets="12v"><rect class="box" x="450" y="20" width="110" height="50" rx="9"/><text x="460" y="42">Power switch</text><text x="460" y="59" class="sub">KCD1 rocker</text></g>
+      <g class="comp" data-nets="12v 5v gnd"><rect class="box" x="30" y="150" width="140" height="70" rx="9"/><text x="40" y="175">Buck converter</text><text x="40" y="193" class="sub">12 V → 5 V</text><text x="128" y="190" class="pin">OUT</text></g>
+      <g class="comp" data-nets="5v gnd io25 io26 io34 io27 io2">
+        <rect class="box" x="260" y="150" width="180" height="320" rx="10"/>
+        <text x="300" y="172" style="font-weight:700">ESP32 DevKit</text>
+        <text x="268" y="189" class="pin">VIN</text><text x="268" y="229" class="pin">GND</text>
+        <text x="434" y="204" class="pin" text-anchor="end">GPIO25</text><text x="434" y="294" class="pin" text-anchor="end">GPIO26</text>
+        <text x="434" y="389" class="pin" text-anchor="end">GPIO34</text>
+        <text x="320" y="462" class="pin" text-anchor="middle">GPIO27</text><text x="400" y="462" class="pin" text-anchor="middle">GPIO2</text>
+      </g>
+      <g class="comp" data-nets="io25 pump gnd"><rect class="box" x="520" y="165" width="160" height="70" rx="9"/><text x="530" y="188">MOSFET · pump</text><text x="530" y="205" class="sub">AOD4184 module</text><text x="530" y="222" class="pin">SIG       OUT−</text></g>
+      <g class="comp" data-nets="io26 valve gnd"><rect class="box" x="520" y="255" width="160" height="70" rx="9"/><text x="530" y="278">MOSFET · valve</text><text x="530" y="295" class="sub">AOD4184 module</text><text x="530" y="312" class="pin">SIG       OUT−</text></g>
+      <g class="comp" data-nets="5v io34 gnd"><rect class="box" x="520" y="340" width="160" height="60" rx="9"/><text x="530" y="368">Pressure sensor</text><text x="530" y="385" class="sub">XGZP6847A · 5 V</text></g>
+      <g class="comp" data-nets="12v pump"><rect class="box" x="780" y="170" width="200" height="60" rx="9"/><text x="792" y="195">Vacuum pump</text><text x="792" y="213" class="sub">12 V diaphragm · + from rail</text></g>
+      <g class="comp" data-nets="12v valve"><rect class="box" x="780" y="260" width="200" height="60" rx="9"/><text x="792" y="285">Vent valve (normally open)</text><text x="792" y="303" class="sub">vents when unpowered · add diode</text></g>
+      <g class="comp" data-nets="io27 gnd"><rect class="box" x="270" y="540" width="140" height="50" rx="9"/><text x="280" y="562">STOP button</text><text x="280" y="579" class="sub">to GND, internal pull-up</text></g>
+      <g class="comp" data-nets="io2 gnd"><rect class="box" x="470" y="540" width="170" height="50" rx="9"/><text x="480" y="562">RUN LED + 330 Ω</text><text x="480" y="579" class="sub">mirrors the on-board LED</text></g>
+      <text x="700" y="470" class="sub">Also: 10k from GPIO25 and GPIO26 to GND,</text>
+      <text x="700" y="486" class="sub">so both outputs stay off while the ESP32 boots.</text>
+      <text x="700" y="512" class="sub">Diode across the valve coil too (stripe to +12 V).</text>
+    </svg>
+    <div class="legend" id="legend">
+      <span data-net="12v"><i style="background:var(--w12)"></i>+12 V</span>
+      <span data-net="5v"><i style="background:var(--w5)"></i>5 V</span>
+      <span data-net="sig"><i style="background:var(--wsig)"></i>ESP32 signals</span>
+      <span data-net="load"><i style="background:var(--wload)"></i>Switched load (−)</span>
+      <span data-net="gnd"><i style="background:var(--wgnd)"></i>Ground</span>
+    </div>
+  </div>
+  <div class="card tablewrap" style="margin-top:14px">
+    <table><thead><tr><th>ESP32 pin</th><th>Goes to</th><th>Notes</th></tr></thead><tbody>
+      <tr><td><code>GPIO25</code></td><td>Pump MOSFET signal</td><td>PWM at 20 kHz</td></tr>
+      <tr><td><code>GPIO26</code></td><td>Vent valve MOSFET signal</td><td>HIGH = valve closed (sealing)</td></tr>
+      <tr><td><code>GPIO34</code></td><td>Sensor through the 10k/15k divider</td><td>Must be an ADC1 pin (32–39); ADC2 stops working with WiFi on</td></tr>
+      <tr><td><code>GPIO27</code></td><td>STOP button to GND</td><td>Press = stop · hold 3 s = clear a fault</td></tr>
+      <tr><td><code>GPIO2</code></td><td>RUN LED</td><td>On = running · blinking = fault</td></tr>
+      <tr><td><code>VIN</code> / <code>GND</code></td><td>Buck 5 V / common ground</td><td>Check the buck reads 5.0 V before connecting the ESP32</td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<!-- ============================== PLUMBING ============================== -->
+<section id="plumbing">
+  <h2>Plumbing</h2>
+  <p class="lede">All air paths meet at one tee. Pick a phase to see which way the air moves.</p>
+  <div class="card diagram">
+    <div class="seg" id="flowSeg" style="margin:4px 4px 8px"><button data-m="suck" class="on">Suction phase</button><button data-m="vent">Vent phase / power cut</button><button data-m="relief">Relief valve opening</button></div>
+    <svg viewBox="0 0 1000 330" id="psvg" role="img" aria-label="Plumbing diagram">
+      <path class="pf" d="M190 165 H250"/><path class="pf" d="M330 165 H370"/><path class="pf" d="M440 165 H490"/><path class="pf" d="M520 165 H600"/>
+      <path class="pf" d="M600 165 H780"/><path class="pf" d="M600 165 V60 H700"/><path class="pf" d="M600 165 V270 H700"/>
+      <path class="pf" d="M600 165 L520 65"/><path class="pf" d="M600 165 L520 270"/><path class="pf" d="M600 165 V40"/>
+      <!-- animated flow overlays, each drawn from the tee outward or along the trunk towards the tee -->
+      <path class="pfa trunk" d="M190 165 H250"/><path class="pfa trunk" d="M330 165 H370"/><path class="pfa trunk" d="M440 165 H490"/><path class="pfa trunk" d="M520 165 H600"/>
+      <path class="pfa pump" d="M600 165 H780"/><path class="pfa pumpx" d="M900 165 H970"/>
+      <path class="pfa relief" d="M600 165 V60 H700"/><path class="pfa reliefx" d="M820 60 H900"/>
+      <path class="pfa vent" d="M600 165 V270 H700"/><path class="pfa ventx" d="M840 270 H920"/>
+      <circle cx="600" cy="165" r="12" fill="var(--surface)" stroke="var(--muted)" stroke-width="2"/><text x="600" y="194" text-anchor="middle" class="sub">tee</text>
+      <g><rect class="box" x="40" y="130" width="150" height="70" rx="30"/><text x="115" y="162" text-anchor="middle">Cylinder</text><text x="115" y="180" text-anchor="middle" class="sub">bought</text></g>
+      <g><rect class="box" x="250" y="135" width="80" height="60" rx="10"/><text x="290" y="162" text-anchor="middle">Fluid</text><text x="290" y="178" text-anchor="middle">trap</text></g>
+      <g><rect class="box" x="370" y="145" width="70" height="40" rx="8"/><text x="405" y="170" text-anchor="middle" class="sub">filter</text></g>
+      <g><rect x="490" y="120" width="30" height="90" fill="var(--surface-2)" stroke="var(--line)"/><text x="505" y="232" text-anchor="middle" class="sub">box wall</text></g>
+      <g><rect class="box" x="780" y="140" width="120" height="50" rx="9"/><text x="840" y="162" text-anchor="middle">Pump</text><text x="840" y="180" text-anchor="middle" class="state-tag" id="stPump">ON</text></g>
+      <text x="935" y="152" class="sub" text-anchor="middle">exhaust</text>
+      <g><rect class="box" x="700" y="35" width="120" height="50" rx="9"/><text x="760" y="57" text-anchor="middle">Relief valve</text><text x="760" y="75" text-anchor="middle" class="state-tag" id="stRelief">CLOSED</text></g>
+      <text x="905" y="55" class="sub">air in</text>
+      <g><rect class="box" x="700" y="245" width="140" height="50" rx="9"/><text x="770" y="267" text-anchor="middle">Vent valve (NO)</text><text x="770" y="285" text-anchor="middle" class="state-tag" id="stVent">CLOSED</text></g>
+      <text x="925" y="265" class="sub">air in</text>
+      <g><rect class="box" x="455" y="40" width="70" height="40" rx="20"/><text x="490" y="65" text-anchor="middle" class="sub">gauge</text></g>
+      <g><rect class="box" x="560" y="10" width="80" height="32" rx="8"/><text x="600" y="31" text-anchor="middle" class="sub">sensor</text></g>
+      <g><rect class="box" x="440" y="255" width="85" height="40" rx="8"/><text x="482" y="272" text-anchor="middle" class="sub">manual</text><text x="482" y="286" text-anchor="middle" class="sub">release</text></g>
+    </svg>
+    <div class="small muted" id="flowText" style="margin:6px 6px 4px"></div>
+  </div>
+</section>
+
+<!-- ============================== APP ============================== -->
+<section id="app">
+  <h2>Control app</h2>
+  <p class="lede">This is the page the ESP32 serves at <code>http://192.168.4.1</code>. It's running here as a simulator, so you can try every control. On the real device it shows live sensor readings.</p>
+  <div class="app-layout">
+    <div class="phone"><iframe id="appFrame" title="Control app simulator"></iframe></div>
+    <div class="grid">
+      <div class="card pad">
+        <h3>Patterns</h3>
+        <p class="small muted" style="margin-top:0">The same pattern logic the firmware runs, plotted over 10 seconds. The dashed line is the target and the solid line is a simulated vacuum.</p>
+        <div class="seg" id="patSeg"><button data-p="stroke" class="on">Stroke</button><button data-p="wave">Wave</button><button data-p="flutter">Flutter</button><button data-p="build">Build</button><button data-p="random">Random</button></div>
+        <div class="controls">
+          <label>Speed <input type="range" id="patSpeed" min="1" max="10" value="4"> <b id="patSpeedV">4</b></label>
+          <label>Intensity <input type="range" id="patLevel" min="1" max="15" step="0.5" value="8"> <b id="patLevelV">8</b> kPa</label>
+          <label><input type="checkbox" id="patSoft" checked> Soft start</label>
+        </div>
+        <canvas class="chart" id="patChart"></canvas>
+        <div class="small muted" id="patDesc"></div>
+      </div>
+      <div class="card pad small">
+        <h3>How the controller decides</h3>
+        <ul style="margin:0;padding-left:18px">
+          <li>Every 10 ms it reads the sensor, works out the target for that moment, then runs the pump harder the further below target it is.</li>
+          <li>If the vacuum is above target, it opens the vent valve in 50 ms pulses to bleed it down.</li>
+          <li>Over the hard limit, or more than 3 kPa over your max, it vents immediately and latches a fault.</li>
+          <li>Each vent phase must actually lower the vacuum. Three misses in a row means the valve is stuck, which is also a fault.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== SAFETY ============================== -->
+<section id="safety">
+  <h2>Safety layers</h2>
+  <p class="lede">No single failure should leave vacuum applied. The hardware layers work even if the firmware is completely dead.</p>
+  <div class="grid safety" id="safetyGrid"></div>
+  <div class="warnbox small">
+    <b>Use rules.</b> Start at the lowest intensity and keep sessions short. Never use it while drowsy or leave it running unattended. Stop if you feel pain or numbness, or see discoloration. If you have a bleeding disorder, take blood thinners or have nerve damage, check with a doctor first. The limits in <code>config.h</code> are conservative engineering defaults, not medical advice.
+  </div>
+</section>
+
+<!-- ============================== BUILD ============================== -->
+<section id="build">
+  <h2>Build &amp; test checklist</h2>
+  <p class="lede">Work top to bottom. Your ticks are saved in this browser.</p>
+  <div class="card">
+    <div class="pad" style="padding-bottom:0"><b id="buildCount"></b><div class="progress"><i id="buildBar"></i></div></div>
+    <ul class="steps" id="steps"></ul>
+  </div>
+</section>
+
+<!-- ============================== FILES ============================== -->
+<section id="files">
+  <h2>Files &amp; commands</h2>
+  <p class="lede">Run these in PowerShell from the <code>diy-vacuum-controller</code> folder. The <code>&amp;</code> is required before a quoted program path.</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div class="card pad">
+      <h3>Project folder</h3>
+      <div class="tree">diy-vacuum-controller/
+├─ showcase.html        ← this page
+├─ README.md            full build guide
+├─ firmware/
+│  ├─ platformio.ini
+│  └─ VacController/    .ino, config.h, web_ui.h
+├─ ui/index.html        control page (simulator)
+├─ tools/               embed_ui.py, build_showcase.py
+└─ cad/
+   ├─ build_cad.py      parametric model
+   ├─ check_fit.py      collision check
+   ├─ VacController.FCStd
+   ├─ stl/  step/  previews/
+   └─ blender/          demo.py, .blend, render/</div>
+    </div>
+    <div class="card pad" id="cmds">
+      <h3>Commands</h3>
+    </div>
+  </div>
+  <div class="card pad" style="margin-top:14px">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">firmware/VacController/config.h <button class="btn" id="copyCfg">Copy</button></h3>
+    <p class="small muted" style="margin-top:0">Every setting you might change lives here. At minimum, change <code>WIFI_AP_PASS</code>.</p>
+    <pre class="cfg" id="cfg" style="max-height:420px"></pre>
+  </div>
+</section>
+</main>
+<footer>Built from the project files. Re-run <code>python tools/build_showcase.py</code> after changing the CAD, firmware config or control page.</footer>
+
+<script type="application/json" id="data">__DATA_JSON__</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const MAN = DATA.manifest;
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const pretty = (n) => n.replace(/_a$|_b$/, (m) => (m === "_a" ? " (1)" : " (2)")).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+// ---------------------------------------------------------------- theme + nav
+(function theme() {
+  const saved = store.get("vac.theme", null);
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("themeBtn").onclick = () => {
+    const dark = document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.dataset.theme = dark ? "light" : "dark";
+    store.set("vac.theme", document.documentElement.dataset.theme);
+    drawChart();
+  };
+  const links = [...document.querySelectorAll("#nav a")];
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) links.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-40% 0px -55% 0px" });
+  document.querySelectorAll("main section").forEach((s) => io.observe(s));
+})();
+
+// ---------------------------------------------------------------- part descriptions
+const INFO = {
+  base: ["Enclosure base", "180 × 130 × 75 mm. The floor has a 10 mm grid of M3 holes, so the brackets screw down anywhere. Corner bosses take heat-set inserts. Wall holes: hose port (front), relief valve and vent exhaust (right side), DC jack (back), USB (left)."],
+  lid: ["Lid", "Cut-outs for the 40 mm gauge, 16 mm STOP button, power rocker and RUN LED, with engraved labels. Prints top face down, no supports."],
+  pump_cradle_a: ["Pump cradle", "Saddle for the pump motor (print two). A zip-tie tunnel runs under the seat. Line it with 1.5 mm foam to cut vibration and noise."],
+  pump_cradle_b: ["Pump cradle", "Second saddle; same part as the first."],
+  valve_bracket: ["Valve bracket", "The vent valve sits on the base and is zip-tied to the wall."],
+  electronics_plate: ["Electronics plate", "Holds the 70 × 50 mm perfboard on four standoffs. Slotted holes screw to the floor grid."],
+  hose_grommet: ["Hose grommet", "Print in TPU. Pushes into the hose port; the tube passes through snugly."],
+  cylinder_stand: ["Cylinder stand", "Desk stand for the cylinder when not in use."],
+  pump_motor: ["Vacuum pump (motor)", "12 V diaphragm vacuum pump, about 28 mm motor. The firmware runs it with PWM."],
+  pump_head: ["Vacuum pump (head)", "The diaphragm head. Its inlet connects to the tee."],
+  vent_valve: ["Vent valve · normally open", "The core fail-safe. It's open (venting) whenever it has no power, so a power cut, crash or broken wire always releases the vacuum. Energised = sealed."],
+  perfboard: ["Perfboard 70 × 50", "Carries the ESP32 (in sockets), both MOSFET boards, the buck converter, the 10k/15k divider and the 10k pull-downs."],
+  esp32: ["ESP32 DevKit", "Runs the control loop every 10 ms, makes its own WiFi network and serves the phone page."],
+  buck_5v: ["Buck converter 12 → 5 V", "Powers the ESP32 and the pressure sensor. Set or check it at 5.0 V before connecting the ESP32."],
+  mosfet_pump: ["MOSFET board · pump", "AOD4184 module: switches the pump's negative side from GPIO25 (PWM)."],
+  mosfet_valve: ["MOSFET board · valve", "AOD4184 module: switches the vent valve from GPIO26."],
+  pressure_sensor: ["Pressure sensor", "XGZP6847A, −100 to 0 kPa, 5 V. The firmware's eyes: it closes the control loop and drives every safety check."],
+  gauge: ["Vacuum gauge", "40 mm mechanical gauge. An independent check on the sensor."],
+  gauge_face: ["Gauge face", "Part of the gauge."],
+  gauge_needle: ["Gauge needle", "Moves with the vacuum in the demo."],
+  stop_button: ["STOP button", "16 mm momentary button. Press = stop; hold 3 s = clear a fault."],
+  stop_cap: ["STOP button cap", "Part of the STOP button."],
+  rocker_switch: ["Power switch", "Cuts the 12 V rail. The vent valve opens the moment power goes."],
+  status_led: ["RUN LED", "On while running, blinking on a fault."],
+  dc_jack: ["DC jack", "12 V input from a UL/CE-listed adapter."],
+  relief_valve: ["Relief valve", "Mechanical upper limit. Set it on the bench to ≤ 30 kPa, below the firmware's 35 kPa hard limit."],
+  tubing: ["Tubing", "4 × 6 mm silicone. Everything meets at one tee: pump, vent valve, relief valve, sensor, hose port."],
+};
+
+// ---------------------------------------------------------------- mesh helpers
+function decode(m) {
+  const bin = atob(m.data), n = bin.length >> 1, pos = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const q = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8), a = i % 3;
+    pos[i] = m.min[a] + (q / 65535) * m.span[a];
+  }
+  return pos;
+}
+// Smooth normals, except across edges sharper than `angle` (keeps boxes crisp, cylinders smooth).
+function creasedNormals(pos, angle = 32) {
+  const nf = pos.length / 9, fn = new Float32Array(nf * 3);
+  for (let f = 0; f < nf; f++) {
+    const o = f * 9;
+    const ax = pos[o + 3] - pos[o], ay = pos[o + 4] - pos[o + 1], az = pos[o + 5] - pos[o + 2];
+    const bx = pos[o + 6] - pos[o], by = pos[o + 7] - pos[o + 1], bz = pos[o + 8] - pos[o + 2];
+    let x = ay * bz - az * by, y = az * bx - ax * bz, z = ax * by - ay * bx;
+    const l = Math.hypot(x, y, z) || 1;
+    fn[f * 3] = x / l; fn[f * 3 + 1] = y / l; fn[f * 3 + 2] = z / l;
+  }
+  const map = new Map(), keys = new Array(nf * 3);
+  for (let v = 0; v < nf * 3; v++) {
+    const k = Math.round(pos[v * 3] * 50) + "," + Math.round(pos[v * 3 + 1] * 50) + "," + Math.round(pos[v * 3 + 2] * 50);
+    keys[v] = k;
+    let l = map.get(k);
+    if (!l) map.set(k, (l = []));
+    l.push((v / 3) | 0);
+  }
+  const cos = Math.cos((angle * Math.PI) / 180), out = new Float32Array(pos.length);
+  for (let v = 0; v < nf * 3; v++) {
+    const f = (v / 3) | 0, list = map.get(keys[v]);
+    let x = 0, y = 0, z = 0;
+    for (const g of list) {
+      if (fn[f * 3] * fn[g * 3] + fn[f * 3 + 1] * fn[g * 3 + 1] + fn[f * 3 + 2] * fn[g * 3 + 2] >= cos) {
+        x += fn[g * 3]; y += fn[g * 3 + 1]; z += fn[g * 3 + 2];
+      }
+    }
+    const l = Math.hypot(x, y, z) || 1;
+    out[v * 3] = x / l; out[v * 3 + 1] = y / l; out[v * 3 + 2] = z / l;
+  }
+  return out;
+}
+function geometryFrom(pos) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.BufferAttribute(creasedNormals(pos), 3));
+  g.computeBoundingBox();
+  return g;
+}
+
+// ---------------------------------------------------------------- generic viewer
+class Viewer {
+  constructor(el) {
+    this.el = el;
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(35, 1, 1, 20000);
+    this.camera.up.set(0, 0, 1);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    el.appendChild(this.renderer.domElement);
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3f47, 0.85));
+    const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(300, -420, 650); this.scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35); fill.position.set(-380, 260, 300); this.scene.add(fill);
+    this.tickers = [];
+    this.visible = true;
+    new ResizeObserver(() => this.resize()).observe(el);
+    new IntersectionObserver((es) => (this.visible = es[0].isIntersecting)).observe(el);
+    this.resize();
+    const loop = (t) => {
+      requestAnimationFrame(loop);
+      if (!this.visible) return;
+      this.tickers.forEach((f) => f(t));
+      this.controls.update();
+      this.renderer.render(this.scene, this.camera);
+    };
+    requestAnimationFrame(loop);
+  }
+  resize() {
+    const w = this.el.clientWidth, h = this.el.clientHeight;
+    if (!w || !h) return;
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+  fit(box, dir = [0.62, -1, 0.72], pad = 1.15) {
+    const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+    const fov = (this.camera.fov * Math.PI) / 180, aspect = Math.max(this.camera.aspect, 0.6);
+    const dist = (r * pad) / Math.sin(Math.min(fov, fov * aspect) / 2);
+    this.camera.position.copy(c).add(new THREE.Vector3(...dir).normalize().multiplyScalar(dist));
+    this.controls.target.copy(c);
+    this.camera.near = dist / 50; this.camera.far = dist * 20; this.camera.updateProjectionMatrix();
+  }
+}
+
+function makeMaterial(name, rgb, group) {
+  const c = new THREE.Color(rgb[0], rgb[1], rgb[2]);
+  const p = { color: c, roughness: group === "printed" ? 0.72 : 0.5, metalness: 0 };
+  if (name === "vent_valve" || name === "relief_valve") Object.assign(p, { metalness: 0.85, roughness: 0.32 });
+  if (name === "gauge" || name === "pump_motor") Object.assign(p, { metalness: 0.9, roughness: 0.28 });
+  if (name === "tubing") Object.assign(p, { transparent: true, opacity: 0.55, roughness: 0.15 });
+  if (name === "status_led") Object.assign(p, { emissive: new THREE.Color(0.1, 1, 0.3), emissiveIntensity: 0.15 });
+  return new THREE.MeshStandardMaterial(p);
+}
+
+// ---------------------------------------------------------------- main 3D viewer
+let mainViewer = null;
+const parts = {};          // name -> mesh
+let selected = null;
+function initModel() {
+  const el = $("viewer");
+  const v = (mainViewer = new Viewer(el));
+  const group = new THREE.Group();
+  v.scene.add(group);
+  const box = new THREE.Box3();
+  for (const p of MAN.parts) {
+    if (p.name === "cylinder_stand") continue;
+    const mesh = new THREE.Mesh(geometryFrom(decode(p.mesh)), makeMaterial(p.name, p.color, p.group));
+    mesh.userData = { name: p.name, group: p.group, explode: p.explode, baseOpacity: mesh.material.opacity };
+    group.add(mesh);
+    parts[p.name] = mesh;
+    // Frame both the assembled and the fully exploded positions, so exploding never leaves the view.
+    const bb = mesh.geometry.boundingBox;
+    box.union(bb);
+    box.union(bb.clone().translate(new THREE.Vector3(...p.explode).multiplyScalar(1.4)));
+  }
+  // Gauge needle (same construction as the Blender demo).
+  const gc = MAN.gauge_center, r = MAN.gauge_radius * 0.85;
+  const ng = new THREE.BufferGeometry();
+  ng.setAttribute("position", new THREE.BufferAttribute(new Float32Array([-0.8, 0, 0, 0.8, 0, 0, 0, r, 0, 0.8, 0, 0, -0.8, 0, 0, 0, -3, 0]), 3));
+  ng.computeVertexNormals();
+  const needle = new THREE.Mesh(ng, new THREE.MeshStandardMaterial({ color: 0xd11a1a, side: THREE.DoubleSide }));
+  const pivot = new THREE.Group();
+  pivot.position.set(gc[0], gc[1], gc[2] + 0.4);
+  pivot.add(needle);
+  pivot.userData = { name: "gauge_needle", group: "bought", explode: parts.gauge_face ? parts.gauge_face.userData.explode : [0, 0, 90] };
+  group.add(pivot);
+  parts.gauge_needle = pivot;
+  const ZERO = (135 * Math.PI) / 180, SWEEP = (270 * Math.PI) / 180;
+  pivot.rotation.z = ZERO;
+
+  v.fit(box, undefined, 0.82);  // the bounding sphere is generous, so a pad under 1 still fits
+  const home = { pos: v.camera.position.clone(), target: v.controls.target.clone() };
+  $("viewerLoading").remove();
+
+  // Explode
+  const applyExplode = () => {
+    const t = +$("explode").value;
+    for (const m of Object.values(parts)) {
+      const e = m.userData.explode || [0, 0, 0];
+      const base = m === pivot ? [gc[0], gc[1], gc[2] + 0.4] : [0, 0, 0];
+      m.position.set(base[0] + e[0] * 1.4 * t, base[1] + e[1] * 1.4 * t, base[2] + e[2] * 1.4 * t);
+    }
+  };
+  $("explode").oninput = applyExplode;
+
+  // Visibility: lid toggle, printed/bought filter, x-ray
+  let lidHidden = false, show = "all", xray = false;
+  const applyVis = () => {
+    for (const m of Object.values(parts)) {
+      const onLid = (m.userData.explode || [0, 0, 0])[2] >= 90;
+      m.visible = !(lidHidden && onLid) && (show === "all" || m.userData.group === show);
+      if (m.material && (m.userData.name === "base" || m.userData.name === "lid")) {
+        m.material.transparent = xray;
+        m.material.opacity = xray ? 0.16 : 1;
+        m.material.depthWrite = !xray;
+      }
+    }
+  };
+  $("btnLid").onclick = (e) => { lidHidden = !lidHidden; e.target.classList.toggle("on", lidHidden); e.target.textContent = lidHidden ? "Show lid" : "Hide lid"; applyVis(); };
+  $("btnXray").onclick = (e) => { xray = !xray; e.target.classList.toggle("on", xray); applyVis(); };
+  $("btnSpin").onclick = (e) => { v.controls.autoRotate = !v.controls.autoRotate; v.controls.autoRotateSpeed = 1.2; e.target.classList.toggle("on", v.controls.autoRotate); };
+  document.querySelectorAll("#showSeg button").forEach((b) => b.onclick = () => {
+    show = b.dataset.s;
+    document.querySelectorAll("#showSeg button").forEach((x) => x.classList.toggle("on", x === b));
+    applyVis();
+  });
+  $("btnReset").onclick = () => {
+    v.camera.position.copy(home.pos); v.controls.target.copy(home.target);
+    $("explode").value = 0; applyExplode();
+  };
+
+  // Selection
+  const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+  let down = null;
+  el.addEventListener("pointerdown", (e) => (down = [e.clientX, e.clientY]));
+  el.addEventListener("pointerup", (e) => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    const r = v.renderer.domElement.getBoundingClientRect();
+    ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ptr, v.camera);
+    const hits = ray.intersectObjects(Object.values(parts).filter((m) => m.visible && m.isMesh), false)
+      .filter((h) => !(h.object.material.transparent && h.object.material.opacity < 0.3));
+    select(hits.length ? hits[0].object.userData.name : null);
+  });
+
+  // Part list
+  const pl = $("partlist");
+  for (const grp of ["printed", "bought"]) {
+    const h = document.createElement("div"); h.className = "grp"; h.textContent = grp === "printed" ? "Printed" : "Bought";
+    pl.appendChild(h);
+    for (const p of MAN.parts.filter((q) => q.group === grp && q.name !== "cylinder_stand" && !/gauge_face|stop_cap/.test(q.name))) {
+      const b = document.createElement("button");
+      b.dataset.name = p.name;
+      const c = p.color.map((x) => Math.round(Math.min(1, x) * 255));
+      b.innerHTML = `<span class="sw" style="background:rgb(${c})"></span>${pretty(p.name)}`;
+      b.onclick = () => select(p.name);
+      pl.appendChild(b);
+    }
+  }
+
+  // Run demo: soft-started Stroke pattern on the gauge, LED and pump.
+  let running = false, t0 = 0;
+  const led = parts.status_led, pumpParts = [parts.pump_motor, parts.pump_head].filter(Boolean);
+  $("btnRun").onclick = (e) => {
+    running = !running; t0 = performance.now();
+    e.target.textContent = running ? "■ STOP" : "▶ Run demo";
+    e.target.classList.toggle("primary", running);
+    $("readout").style.display = running ? "block" : "none";
+  };
+  let lastKpa = 0;
+  v.tickers.push((now) => {
+    let kpa = 0, pumping = false;
+    if (running) {
+      const t = (now - t0) / 1000;
+      kpa = vacuumAt(t);
+      pumping = ((t % 1.5) / 1.5) < 0.55;
+    } else {
+      kpa = lastKpa * 0.85;  // vents quickly after STOP
+    }
+    lastKpa = kpa;
+    pivot.rotation.z = ZERO - (SWEEP * kpa) / 100;
+    if (led) led.material.emissiveIntensity = running ? 2.2 : 0.15;
+    const e = +$("explode").value;
+    pumpParts.forEach((m) => { m.position.z = (m.userData.explode[2] * 1.4 * e) + (pumping ? Math.sin(now / 9) * 0.25 : 0); });
+    $("readKpa").textContent = kpa.toFixed(1);
+  });
+}
+function vacuumAt(t) {
+  const period = 1.5, duty = 0.55, level = 12, soft = Math.min(1, 0.3 + (0.7 * t) / 3), ph = (t % period) / period;
+  if (ph < duty) return level * soft * (1 - Math.exp((-ph / duty) * 4));
+  return level * soft * (1 - Math.exp(-4)) * Math.exp(-(ph - duty) * period * 9);
+}
+function select(name) {
+  if (selected && parts[selected] && parts[selected].material) parts[selected].material.emissive.setHex(selected === "status_led" ? 0x1aff4d : 0x000000);
+  selected = name;
+  document.querySelectorAll("#partlist button").forEach((b) => b.classList.toggle("on", b.dataset.name === name));
+  if (!name) { $("infoName").textContent = "Click a part"; $("infoTag").textContent = ""; $("infoText").textContent = "Pick something in the 3D view or from the list."; $("infoExtra").innerHTML = ""; return; }
+  const m = parts[name];
+  if (m && m.material && name !== "status_led") { m.material.emissive.set(css("--accent") || "#e0561d"); m.material.emissiveIntensity = 0.45; }
+  const [title, text] = INFO[name] || [pretty(name), ""];
+  $("infoName").textContent = title;
+  const grp = m ? m.userData.group : "bought";
+  $("infoTag").textContent = grp; $("infoTag").className = "pill " + (grp === "printed" ? "printed" : "");
+  $("infoText").textContent = text;
+  const pkey = name.replace(/_[ab]$/, "");
+  const item = BOM.find((b) => b.parts && b.parts.includes(name));
+  $("infoExtra").innerHTML = grp === "printed" && PRINT[pkey]
+    ? `<a href="#print" data-p="${pkey}" class="jump">See print details →</a>`
+    : item && item.term ? `Search: <a target="_blank" rel="noopener" href="${aliUrl(item.term)}">${item.term}</a>` : "";
+  const j = $("infoExtra").querySelector(".jump");
+  if (j) j.onclick = () => showPrint(j.dataset.p);
+}
+
+// ---------------------------------------------------------------- printable parts
+const PRINT = {
+  base: { qty: 1, mat: "PETG (or PLA)", orient: "As exported, opening up. No supports.", note: "Press 4× M3 heat-set inserts into the corner bosses." },
+  lid: { qty: 1, mat: "PETG", orient: "Top face down; the labels print on the bed side. No supports.", note: "Countersunk M3 holes line up with the base inserts." },
+  pump_cradle: { qty: 2, mat: "PETG", orient: "Flat side down.", note: "Line the saddle with 1.5 mm foam; zip-tie through the tunnel." },
+  valve_bracket: { qty: 1, mat: "PETG or PLA", orient: "As exported.", note: "Zip-tie the valve to the wall." },
+  electronics_plate: { qty: 1, mat: "PETG or PLA", orient: "As exported.", note: "Perfboard screws onto the standoffs with M2 screws." },
+  hose_grommet: { qty: 1, mat: "TPU", orient: "Flange down.", note: "Snaps into the 10 mm hose port." },
+  cylinder_stand: { qty: 1, mat: "PETG or PLA", orient: "As exported.", note: "For the bought cylinder (Ø62 mm by default)." },
+};
+let pViewer = null, pMesh = null, pCurrent = null;
+const printCache = {};
+function initPrint() {
+  const list = $("plist");
+  for (const name of Object.keys(PRINT)) {
+    if (!DATA.printable[name]) continue;
+    const m = DATA.printable[name];
+    const b = document.createElement("button");
+    b.dataset.p = name;
+    b.innerHTML = `${pretty(name)}${PRINT[name].qty > 1 ? " ×" + PRINT[name].qty : ""}<small>${PRINT[name].mat} · ${m.span.map((x) => Math.round(x)).join(" × ")} mm</small>`;
+    b.onclick = () => showPrint(name);
+    list.appendChild(b);
+  }
+  pViewer = new Viewer($("pviewer"));
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(220, 220, 1), new THREE.MeshStandardMaterial({ color: 0x9aa1ad, roughness: 0.9, transparent: true, opacity: 0.35 }));
+  bed.position.z = -0.5;
+  pViewer.scene.add(bed);
+  const grid = new THREE.GridHelper(220, 22, 0x777777, 0x999999);
+  grid.rotation.x = Math.PI / 2;
+  grid.material.transparent = true; grid.material.opacity = 0.35;
+  pViewer.scene.add(grid);
+  $("pviewerLoading").remove();
+  $("btnStl").onclick = () => downloadStl(pCurrent);
+  showPrint("base", false);
+}
+function showPrint(name, scroll = true) {
+  pCurrent = name;
+  document.querySelectorAll("#plist button").forEach((b) => b.classList.toggle("on", b.dataset.p === name));
+  const m = DATA.printable[name];
+  if (!printCache[name]) printCache[name] = decode(m);
+  const pos = printCache[name];
+  if (pMesh) { pViewer.scene.remove(pMesh); pMesh.geometry.dispose(); }
+  pMesh = new THREE.Mesh(geometryFrom(pos), new THREE.MeshStandardMaterial({ color: new THREE.Color(0.88, 0.36, 0.12), roughness: 0.7 }));
+  pMesh.position.set(-m.span[0] / 2, -m.span[1] / 2, 0);
+  pViewer.scene.add(pMesh);
+  const box = new THREE.Box3().setFromObject(pMesh);
+  pViewer.fit(box, [0.7, -1, 0.85], 1.35);
+  // Volume from the closed mesh (signed tetrahedra).
+  let vol = 0;
+  for (let i = 0; i < pos.length; i += 9) {
+    vol += (pos[i] * (pos[i + 4] * pos[i + 8] - pos[i + 5] * pos[i + 7]) - pos[i + 1] * (pos[i + 3] * pos[i + 8] - pos[i + 5] * pos[i + 6]) + pos[i + 2] * (pos[i + 3] * pos[i + 7] - pos[i + 4] * pos[i + 6])) / 6;
+  }
+  const cm3 = Math.abs(vol) / 1000, info = PRINT[name];
+  const grams = cm3 * (info.mat.startsWith("TPU") ? 1.2 : 1.27) * 0.55;
+  $("pmeta").innerHTML = [
+    ["Quantity", info.qty], ["Material", info.mat], ["Size (mm)", m.span.map((x) => x.toFixed(0)).join(" × ")],
+    ["Solid volume", cm3.toFixed(1) + " cm³"], ["Filament (rough)", "≈ " + Math.max(1, Math.round(grams * info.qty)) + " g"], ["Triangles", m.tris.toLocaleString()],
+  ].map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join("");
+  $("pnote").textContent = info.orient + " " + info.note;
+  if (scroll) $("print").scrollIntoView({ behavior: "smooth" });
+}
+function downloadStl(name) {
+  const pos = printCache[name], n = pos.length / 9, buf = new ArrayBuffer(84 + n * 50), dv = new DataView(buf);
+  const head = "VacController " + name;
+  for (let i = 0; i < head.length; i++) dv.setUint8(i, head.charCodeAt(i));
+  dv.setUint32(80, n, true);
+  for (let f = 0; f < n; f++) {
+    const o = 84 + f * 50;
+    for (let k = 0; k < 9; k++) dv.setFloat32(o + 12 + k * 4, pos[f * 9 + k], true);
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([buf], { type: "model/stl" }));
+  a.download = name + ".stl";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ---------------------------------------------------------------- shopping list
+const aliUrl = (term) => "https://www.aliexpress.us/w/wholesale-" + term.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".html?SearchText=" + encodeURIComponent(term);
+const BOM = [
+  { id: "esp32", name: "ESP32 dev board", term: "ESP32 DevKit V1 WROOM-32", qty: 1, lo: 4, hi: 6, parts: ["esp32"] },
+  { id: "pump", name: "12 V diaphragm vacuum pump", term: "12V diaphragm vacuum pump", qty: 1, lo: 8, hi: 15, note: "≈28 mm motor; −60 kPa or so is plenty", parts: ["pump_motor", "pump_head"] },
+  { id: "valve", name: "Vent valve, normally open", term: "12V solenoid valve normally open air mini", qty: 1, lo: 4, hi: 8, note: "Must be normally OPEN", parts: ["vent_valve"] },
+  { id: "sensor", name: "Pressure sensor", term: "XGZP6847A -100kPa 5V", qty: 1, lo: 5, hi: 8, note: "0.5–4.5 V output", parts: ["pressure_sensor"] },
+  { id: "mosfet", name: "MOSFET switch boards", term: "AOD4184 MOSFET module", qty: 2, lo: 2, hi: 4, note: "Not the IRF520 boards (they don't switch at 3.3 V)", parts: ["mosfet_pump", "mosfet_valve"] },
+  { id: "diode", name: "Flyback diodes", term: "1N5819 diode", qty: 2, lo: 1, hi: 2 },
+  { id: "buck", name: "Buck converter 12 → 5 V", term: "Mini560 5V buck converter", qty: 1, lo: 1, hi: 3, parts: ["buck_5v"] },
+  { id: "psu", name: "12 V 3 A power adapter", term: null, qty: 1, lo: 10, hi: 15, note: "Buy locally, UL/CE listed, 5.5 × 2.1 plug" },
+  { id: "jack", name: "Panel DC jack", term: "DC-022 5.5x2.1 panel mount jack", qty: 1, lo: 1, hi: 2, parts: ["dc_jack"] },
+  { id: "fuse", name: "Inline fuse + 3 A fuse", term: "inline fuse holder 5x20", qty: 1, lo: 1, hi: 3 },
+  { id: "rocker", name: "Rocker switch", term: "KCD1 rocker switch", qty: 1, lo: 1, hi: 2, parts: ["rocker_switch"] },
+  { id: "stop", name: "STOP button (red, 16 mm)", term: "16mm momentary push button red", qty: 1, lo: 1, hi: 3, parts: ["stop_button", "stop_cap"] },
+  { id: "res", name: "Resistors + 5 mm LED", term: "resistor kit 1/4W", qty: 1, lo: 1, hi: 3, note: "10k ×3, 15k, 330 Ω; green LED", parts: ["status_led"] },
+  { id: "gauge", name: "Vacuum gauge 40 mm", term: "40mm vacuum gauge -1 0 bar", qty: 1, lo: 4, hi: 7, parts: ["gauge", "gauge_face"] },
+  { id: "relief", name: "Adjustable relief valve", term: "adjustable vacuum relief valve", qty: 1, lo: 5, hi: 10, parts: ["relief_valve"] },
+  { id: "ball", name: "Manual release ball valve", term: "mini ball valve 1/8", qty: 1, lo: 2, hi: 4 },
+  { id: "filter", name: "Inline filter + small jar (fluid trap)", term: "inline hydrophobic filter", qty: 1, lo: 3, hi: 5 },
+  { id: "tube", name: "Silicone tube 4 × 6 mm + tees", term: "silicone tube 4x6mm", qty: 1, lo: 3, hi: 6, parts: ["tubing"] },
+  { id: "perf", name: "Perfboard 70 × 50", term: "70x50 perfboard", qty: 1, lo: 1, hi: 2, parts: ["perfboard"] },
+  { id: "hw", name: "M3 heat-set inserts + screws", term: "M3 heat set insert", qty: 1, lo: 3, hi: 6, note: "Plus M3×8 self-tappers, zip ties, rubber feet, 1.5 mm foam" },
+  { id: "cyl", name: "Cylinder + sleeves", term: null, qty: 1, lo: 15, hi: 40, note: "Replacement parts from the kit sellers. Body-safe silicone/TPE only" },
+];
+function initBom() {
+  const have = store.get("vac.bom", {});
+  let filter = "all";
+  const render = () => {
+    const body = $("bomBody");
+    body.innerHTML = "";
+    let lo = 0, hi = 0, llo = 0, lhi = 0, need = 0;
+    for (const it of BOM) {
+      lo += it.lo; hi += it.hi;
+      if (!have[it.id]) { llo += it.lo; lhi += it.hi; need++; }
+      if (filter === "need" && have[it.id]) continue;
+      const tr = document.createElement("tr");
+      tr.className = have[it.id] ? "have" : "";
+      tr.innerHTML = `<td><input type="checkbox" ${have[it.id] ? "checked" : ""} aria-label="Have ${it.name}"></td>
+        <td><b>${it.name}</b>${it.note ? `<div class="small muted">${it.note}</div>` : ""}</td>
+        <td>${it.term ? `<a target="_blank" rel="noopener" href="${aliUrl(it.term)}">${it.term}</a>` : '<span class="muted">see note</span>'}</td>
+        <td>${it.qty}</td><td class="money">$${it.lo}–${it.hi}</td>`;
+      tr.querySelector("input").onchange = (e) => { have[it.id] = e.target.checked; store.set("vac.bom", have); render(); };
+      body.appendChild(tr);
+    }
+    $("bomTotal").textContent = `Total ≈ $${lo}–${hi}`;
+    $("statCost").textContent = `$${lo}–${hi}`;
+    $("bomLeft").textContent = need ? `· ${need} still to get (≈ $${llo}–${lhi})` : "· you have everything";
+  };
+  document.querySelectorAll("#bomFilter button").forEach((b) => b.onclick = () => {
+    filter = b.dataset.f;
+    document.querySelectorAll("#bomFilter button").forEach((x) => x.classList.toggle("on", x === b));
+    render();
+  });
+  render();
+}
+
+// ---------------------------------------------------------------- wiring
+function initWiring() {
+  const svg = $("wsvg"), gs = $("gsyms");
+  // Ground symbols at the end of each ground stub.
+  const ends = [[225, 84], [60, 236], [238, 240], [600, 246], [600, 336], [600, 414], [452, 446], [430, 565, 1], [660, 565, 1]];
+  for (const [x, y, side] of ends) {
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const d = side ? `M${x} ${y - 9} V${y + 9} M${x + 5} ${y - 6} V${y + 6} M${x + 10} ${y - 3} V${y + 3}`
+                   : `M${x - 9} ${y} H${x + 9} M${x - 6} ${y + 5} H${x + 6} M${x - 3} ${y + 10} H${x + 3}`;
+    g.setAttribute("d", d); g.setAttribute("class", "w ngnd"); g.dataset.net = "gnd";
+    gs.appendChild(g);
+  }
+  const wires = () => svg.querySelectorAll(".w");
+  const highlight = (nets) => {
+    if (!nets) { svg.classList.remove("dim"); wires().forEach((w) => w.classList.remove("hl")); svg.querySelectorAll(".comp").forEach((c) => c.classList.remove("hl")); return; }
+    svg.classList.add("dim");
+    wires().forEach((w) => {
+      const n = w.dataset.net || "";
+      const kind = n.startsWith("io") ? "sig" : n === "pump" || n === "valve" ? "load" : n;
+      w.classList.toggle("hl", nets.includes(n) || nets.includes(kind));
+    });
+  };
+  svg.querySelectorAll(".comp").forEach((c) => {
+    const nets = c.dataset.nets.split(" ");
+    c.addEventListener("mouseenter", () => highlight(nets));
+    c.addEventListener("mouseleave", () => highlight(null));
+    c.addEventListener("click", () => {
+      const on = !c.classList.contains("hl");
+      svg.querySelectorAll(".comp").forEach((x) => x.classList.remove("hl"));
+      if (on) { c.classList.add("hl"); highlight(nets); } else highlight(null);
+    });
+  });
+  document.querySelectorAll("#legend span").forEach((s) => {
+    s.addEventListener("mouseenter", () => highlight([s.dataset.net]));
+    s.addEventListener("mouseleave", () => highlight(null));
+  });
+}
+
+// ---------------------------------------------------------------- plumbing
+function initPlumbing() {
+  const TEXT = {
+    suck: "Suction: the vent valve is powered shut and the pump pulls air from the cylinder, through the fluid trap and filter, into the tee and out the exhaust. The sensor and gauge read the same vacuum.",
+    vent: "Vent: the vent valve is unpowered, so it opens and lets air rush back in through the tee to the cylinder. The same thing happens on a power cut, reset or crash. That's why the valve must be normally open.",
+    relief: "Relief: the vacuum reached the relief valve's setting, so it opens and admits air. However hard the pump pulls, the vacuum can't go higher. This works with no electronics at all.",
+  };
+  const set = (m) => {
+    document.querySelectorAll("#flowSeg button").forEach((b) => b.classList.toggle("on", b.dataset.m === m));
+    const on = (cls, active, rev) => document.querySelectorAll("#psvg .pfa." + cls).forEach((p) => { p.classList.toggle("on", active); p.classList.toggle("rev", !!rev); });
+    on("trunk", m !== "relief", m === "vent");
+    on("pump", m !== "vent"); on("pumpx", m !== "vent");
+    on("vent", m === "vent", true); on("ventx", m === "vent", true);
+    on("relief", m === "relief", true); on("reliefx", m === "relief", true);
+    const tag = (id, txt, cls) => { const t = $(id); t.textContent = txt; t.setAttribute("class", "state-tag " + cls); };
+    tag("stPump", m === "vent" ? "OFF" : "ON", m === "vent" ? "st-off" : "st-on");
+    tag("stVent", m === "vent" ? "OPEN (unpowered)" : "CLOSED (powered)", m === "vent" ? "st-open" : "st-closed");
+    tag("stRelief", m === "relief" ? "OPEN" : "CLOSED", m === "relief" ? "st-open" : "st-closed");
+    $("flowText").textContent = TEXT[m];
+  };
+  document.querySelectorAll("#flowSeg button").forEach((b) => b.onclick = () => set(b.dataset.m));
+  set("suck");
+}
+
+// ---------------------------------------------------------------- pattern chart (mirrors the firmware)
+const PAT_DESC = {
+  stroke: "Stroke: pulls for 55 % of each cycle, then vents fully. The classic on/off rhythm.",
+  wave: "Wave: rises and falls smoothly between 35 % and 100 % and never vents completely.",
+  flutter: "Flutter: short, fast strokes (a third of the cycle time) at 70 % depth.",
+  build: "Build: ten strokes, each deeper than the last, then it starts again.",
+  random: "Random: every stroke gets a random depth (40–100 %) and length (±30 %).",
+};
+let pat = "stroke";
+function simulate(mode, speed, level, soft) {
+  const base = 4000 - ((speed - 1) * 3300) / 9;
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  let cycleStart = 0, count = 0, period = base, depth = 1;
+  const newCycle = () => {
+    if (mode === "flutter") { period = Math.max(base / 3, 300); depth = 0.7; }
+    else if (mode === "build") { period = base; depth = 0.3 + 0.7 * ((count % 10) / 9); }
+    else if (mode === "random") { period = base * (0.7 + rnd() * 0.6); depth = 0.4 + rnd() * 0.6; }
+    else if (mode === "wave") { period = base * 2.5; depth = 1; }
+    else { period = base; depth = 1; }
+  };
+  newCycle();
+  const pts = [];
+  let vac = 0;
+  for (let t = 0; t <= 10000; t += 10) {
+    if (t - cycleStart >= period) { cycleStart = t; count++; newCycle(); }
+    const ph = (t - cycleStart) / period;
+    let frac, vent = false;
+    if (mode === "wave") frac = 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(2 * Math.PI * ph));
+    else { vent = ph >= (mode === "flutter" ? 0.5 : 0.55); frac = vent ? 0 : depth; }
+    const s = soft ? Math.min(1, 0.3 + (0.7 * t) / 20000) : 1;
+    const target = frac * level * s;
+    if (vent) vac -= vac * Math.min(1, 0.01 * 14);
+    else {
+      const err = target - vac;
+      if (err > 0.4) vac += (Math.min(255, 110 + err * 25) / 255) * 28 * 0.01;
+      else if (vac > target + 1) vac -= vac * 0.06;
+    }
+    vac = Math.max(0, vac);
+    pts.push([t / 1000, target, vac]);
+  }
+  return pts;
+}
+function drawChart() {
+  const cv = $("patChart");
+  if (!cv) return;
+  const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d");
+  g.scale(dpr, dpr);
+  const level = +$("patLevel").value, pts = simulate(pat, +$("patSpeed").value, level, $("patSoft").checked);
+  const L = 36, R = 10, T = 24, B = 26, ymax = Math.max(5, Math.ceil(level * 1.15));
+  const X = (t) => L + (t / 10) * (w - L - R), Y = (v) => T + (1 - v / ymax) * (h - T - B);
+  g.font = "11px system-ui"; g.fillStyle = css("--muted"); g.strokeStyle = css("--line"); g.lineWidth = 1;
+  for (let v = 0; v <= ymax; v += Math.max(1, Math.round(ymax / 5))) {
+    g.beginPath(); g.moveTo(L, Y(v)); g.lineTo(w - R, Y(v)); g.stroke();
+    g.fillText(v, 8, Y(v) + 4);
+  }
+  for (let t = 0; t <= 10; t += 2) g.fillText(t + " s", X(t) - 8, h - 8);
+  const line = (idx, color, dash, width) => {
+    g.beginPath(); g.setLineDash(dash); g.strokeStyle = color; g.lineWidth = width;
+    pts.forEach((p, i) => (i ? g.lineTo(X(p[0]), Y(p[idx])) : g.moveTo(X(p[0]), Y(p[idx]))));
+    g.stroke(); g.setLineDash([]);
+  };
+  line(1, css("--muted"), [5, 4], 1.5);
+  line(2, css("--accent"), [], 2.2);
+  g.fillStyle = css("--muted"); g.fillText("kPa", 6, 10);
+  $("patDesc").textContent = PAT_DESC[pat];
+}
+function initPatterns() {
+  document.querySelectorAll("#patSeg button").forEach((b) => b.onclick = () => {
+    pat = b.dataset.p;
+    document.querySelectorAll("#patSeg button").forEach((x) => x.classList.toggle("on", x === b));
+    drawChart();
+  });
+  for (const id of ["patSpeed", "patLevel"]) $(id).oninput = () => { $(id + "V").textContent = $(id).value; drawChart(); };
+  $("patSoft").onchange = drawChart;
+  new ResizeObserver(drawChart).observe($("patChart"));
+  drawChart();
+}
+
+// ---------------------------------------------------------------- safety + build steps
+const SAFETY = [
+  ["Normally-open vent valve", "Vents whenever it's unpowered: power cut, crash, reset or a broken wire.", "hardware"],
+  ["Mechanical relief valve", "Physically can't exceed its setting, whatever the electronics do. Set it on the bench first.", "hardware"],
+  ["Power switch + STOP button", "Physical controls that always work.", "hardware"],
+  ["Manual release valve", "Opens the line to air by hand.", "hardware"],
+  ["Hard vacuum limit", "Over 35 kPa (≈10 inHg) → instant vent and a latched fault.", "firmware"],
+  ["Overshoot trip", "More than 3 kPa over your own max → vent and fault.", "firmware"],
+  ["Vent self-test", "Every vent phase must drop the vacuum; 3 misses → fault.", "firmware"],
+  ["Release check", "After STOP, the vacuum must be gone in 2.5 s or it tells you to use the manual release.", "firmware"],
+  ["Sensor checks", "Tight boot-time zero check; implausible readings → fault.", "firmware"],
+  ["Soft start + session timer", "Ramps up over 20 s; stops after 15 min by default (30 max).", "firmware"],
+  ["Lost-phone stop + watchdog", "Stops if the page goes quiet for 20 s; a firmware hang reboots the ESP32 with everything off.", "firmware"],
+];
+const STEPS = [
+  ["Parts", "Order the parts", "Use the shopping list above. Check the vent valve is normally OPEN."],
+  ["Parts", "Print the 7 parts", "PETG for the box, TPU for the grommet. Print two pump cradles."],
+  ["Parts", "Measure the bought parts", "If the pump, gauge or button sizes differ, edit cad/build_cad.py, re-run it and check_fit.py, then re-print."],
+  ["Assembly", "Press the heat-set inserts", "Four M3 inserts into the base's corner bosses."],
+  ["Assembly", "Build the perfboard", "ESP32 in female headers, both MOSFET boards, buck converter, 10k/15k divider, 10k pull-downs on GPIO25/26."],
+  ["Assembly", "Wire the power chain", "DC jack → fuse → rocker → 12 V rail. Measure the buck output: set or check 5.0 V before plugging in the ESP32."],
+  ["Assembly", "Mount pump and valve", "Foam in the cradles, zip-tie the pump. Valve on its bracket. Flyback diodes across both."],
+  ["Assembly", "Plumb the tee", "Pump, vent valve (exhaust out the side hole), relief valve, manual release, gauge, sensor, hose port with grommet."],
+  ["Firmware", "Set the WiFi password", "WIFI_AP_PASS in config.h, 8+ characters."],
+  ["Firmware", "Upload and check the serial log", "Expect 'Sensor zeroed at 4.5xx V' and the WiFi name."],
+  ["Testing", "Set the relief valve on the bench", "Pump on 12 V directly, hose port blocked: adjust until the gauge stops at ≤ 30 kPa (≈ 9 inHg)."],
+  ["Testing", "Check app vs gauge", "Port blocked, low intensity: the readings should agree within ~1 kPa at a few levels."],
+  ["Testing", "Test the STOP button", "Vacuum must release."],
+  ["Testing", "Test app STOP", "Same result."],
+  ["Testing", "Test power cut", "Switch off while running: vacuum must release instantly (proves the valve is normally open)."],
+  ["Testing", "Test lost phone", "Close the page while running: it stops within 20 s."],
+  ["Testing", "Test the manual release", "Opening it releases the vacuum."],
+  ["Finish", "Close up", "Screw on the lid. Fluid trap and filter go outside, before the hose port."],
+];
+function initSafetyAndSteps() {
+  $("safetyGrid").innerHTML = SAFETY.map(([t, d, k]) => `<div class="card"><b>${t}</b><span class="small muted">${d}</span><div style="margin-top:8px"><span class="pill ${k === "hardware" ? "ok" : ""}">${k}</span></div></div>`).join("");
+  const done = store.get("vac.build", {});
+  const ul = $("steps");
+  const update = () => {
+    const n = STEPS.filter((_, i) => done[i]).length;
+    $("buildCount").textContent = `${n} of ${STEPS.length} done`;
+    $("buildBar").style.width = (n / STEPS.length) * 100 + "%";
+  };
+  STEPS.forEach(([ph, t, d], i) => {
+    const li = document.createElement("li");
+    li.className = done[i] ? "done" : "";
+    li.innerHTML = `<input type="checkbox" ${done[i] ? "checked" : ""} aria-label="${t}"><div><div class="ph">${ph}</div><div class="t"><b>${t}</b></div><div class="d">${d}</div></div>`;
+    li.querySelector("input").onchange = (e) => { done[i] = e.target.checked; li.classList.toggle("done", done[i]); store.set("vac.build", done); update(); };
+    ul.appendChild(li);
+  });
+  update();
+}
+
+// ---------------------------------------------------------------- files, config, app
+function copyText(text, btn) {
+  const ok = () => { const o = btn.textContent; btn.textContent = "Copied"; setTimeout(() => (btn.textContent = o), 1200); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, () => fallback());
+  else fallback();
+  function fallback() { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch (e) {} ta.remove(); }
+}
+function initFiles() {
+  const CMDS = [
+    ["Rebuild the CAD after editing parameters", '& "C:/Program Files/FreeCAD 1.1/bin/freecadcmd.exe" cad/build_cad.py'],
+    ["Check for collisions", '& "C:/Program Files/FreeCAD 1.1/bin/freecadcmd.exe" cad/check_fit.py'],
+    ["Compile and upload the firmware (from firmware/)", '& "$HOME/.platformio/penv/Scripts/pio.exe" run -t upload'],
+    ["Re-embed the control page after editing ui/index.html", "python tools/embed_ui.py"],
+    ["Render the Blender demo video", '& "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background --python cad/blender/demo.py -- --render'],
+    ["Rebuild this page", "python tools/build_showcase.py"],
+  ];
+  const box = $("cmds");
+  for (const [label, cmd] of CMDS) {
+    const d = document.createElement("div");
+    d.innerHTML = `<div class="small muted">${label}</div><div class="copyrow"><pre></pre><button class="btn">Copy</button></div>`;
+    d.querySelector("pre").textContent = cmd;
+    d.querySelector("button").onclick = (e) => copyText(cmd, e.target);
+    box.appendChild(d);
+  }
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  $("cfg").innerHTML = DATA.configH.split("\n").map((line) => {
+    const [code, ...cm] = line.split("//");
+    let c = esc(code).replace(/^(#define)\s+(\w+)/, '<span class="df">$1</span> <span class="nm">$2</span>');
+    return c + (cm.length ? `<span class="cm">//${esc(cm.join("//"))}</span>` : "");
+  }).join("\n");
+  $("copyCfg").onclick = (e) => copyText(DATA.configH, e.target);
+  $("appFrame").srcdoc = DATA.appHtml;
+  if (!$("heroVideo").getAttribute("src")) $("heroVideo").removeAttribute("src");
+}
+
+// ---------------------------------------------------------------- boot
+initBom(); initWiring(); initPlumbing(); initPatterns(); initSafetyAndSteps(); initFiles();
+if (window.THREE && THREE.OrbitControls) {
+  try { initModel(); initPrint(); }
+  catch (e) { console.error(e); $("viewerLoading").textContent = "3D viewer failed to start: " + e.message; }
+} else {
+  const msg = "The 3D viewer needs an internet connection the first time (it loads three.js from a CDN). Everything else on this page works offline.";
+  $("viewerLoading").textContent = msg; $("pviewerLoading").textContent = msg;
+}
+</script>
+</body>
+</html>
