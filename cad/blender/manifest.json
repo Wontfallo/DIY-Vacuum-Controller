@@ -1,0 +1,426 @@
+{
+ "units": "mm",
+ "box": [
+  180.0,
+  130.0,
+  78.0
+ ],
+ "gauge_center": [
+  55.0,
+  72.0,
+  80.0
+ ],
+ "gauge_radius": 19.0,
+ "stop_cap": "stop_cap",
+ "led_name": "status_led",
+ "pump_parts": [
+  "pump_motor",
+  "pump_head"
+ ],
+ "hose_port": [
+  150.0,
+  -2.0,
+  25.0
+ ],
+ "cylinder": {
+  "start": [
+   -160.0,
+   65,
+   42.0
+  ],
+  "length": 150.0,
+  "radius": 31.0
+ },
+ "parts": [
+  {
+   "name": "base",
+   "file": "parts/base.stl",
+   "group": "printed",
+   "color": [
+    0.11,
+    0.12,
+    0.14
+   ],
+   "explode": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "lid",
+   "file": "parts/lid.stl",
+   "group": "printed",
+   "color": [
+    0.11,
+    0.12,
+    0.14
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "pump_cradle_a",
+   "file": "parts/pump_cradle_a.stl",
+   "group": "printed",
+   "color": [
+    0.85,
+    0.35,
+    0.1
+   ],
+   "explode": [
+    0,
+    0,
+    25
+   ]
+  },
+  {
+   "name": "pump_cradle_b",
+   "file": "parts/pump_cradle_b.stl",
+   "group": "printed",
+   "color": [
+    0.85,
+    0.35,
+    0.1
+   ],
+   "explode": [
+    0,
+    0,
+    25
+   ]
+  },
+  {
+   "name": "valve_bracket",
+   "file": "parts/valve_bracket.stl",
+   "group": "printed",
+   "color": [
+    0.85,
+    0.35,
+    0.1
+   ],
+   "explode": [
+    0,
+    0,
+    25
+   ]
+  },
+  {
+   "name": "electronics_plate",
+   "file": "parts/electronics_plate.stl",
+   "group": "printed",
+   "color": [
+    0.85,
+    0.35,
+    0.1
+   ],
+   "explode": [
+    0,
+    0,
+    30
+   ]
+  },
+  {
+   "name": "hose_grommet",
+   "file": "parts/hose_grommet.stl",
+   "group": "printed",
+   "color": [
+    0.15,
+    0.15,
+    0.15
+   ],
+   "explode": [
+    0,
+    -40,
+    0
+   ]
+  },
+  {
+   "name": "cylinder_stand",
+   "file": "parts/cylinder_stand.stl",
+   "group": "printed",
+   "color": [
+    0.11,
+    0.12,
+    0.14
+   ],
+   "explode": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "pump_motor",
+   "file": "parts/pump_motor.stl",
+   "group": "bought",
+   "color": [
+    0.7,
+    0.72,
+    0.75
+   ],
+   "explode": [
+    0,
+    0,
+    45
+   ]
+  },
+  {
+   "name": "pump_head",
+   "file": "parts/pump_head.stl",
+   "group": "bought",
+   "color": [
+    0.08,
+    0.08,
+    0.08
+   ],
+   "explode": [
+    0,
+    0,
+    45
+   ]
+  },
+  {
+   "name": "vent_valve",
+   "file": "parts/vent_valve.stl",
+   "group": "bought",
+   "color": [
+    0.75,
+    0.62,
+    0.25
+   ],
+   "explode": [
+    0,
+    0,
+    45
+   ]
+  },
+  {
+   "name": "perfboard",
+   "file": "parts/perfboard.stl",
+   "group": "bought",
+   "color": [
+    0.2,
+    0.45,
+    0.2
+   ],
+   "explode": [
+    0,
+    0,
+    50
+   ]
+  },
+  {
+   "name": "esp32",
+   "file": "parts/esp32.stl",
+   "group": "bought",
+   "color": [
+    0.12,
+    0.15,
+    0.35
+   ],
+   "explode": [
+    0,
+    0,
+    60
+   ]
+  },
+  {
+   "name": "mosfet_pump",
+   "file": "parts/mosfet_pump.stl",
+   "group": "bought",
+   "color": [
+    0.1,
+    0.1,
+    0.45
+   ],
+   "explode": [
+    0,
+    0,
+    60
+   ]
+  },
+  {
+   "name": "mosfet_valve",
+   "file": "parts/mosfet_valve.stl",
+   "group": "bought",
+   "color": [
+    0.1,
+    0.1,
+    0.45
+   ],
+   "explode": [
+    0,
+    0,
+    60
+   ]
+  },
+  {
+   "name": "buck_5v",
+   "file": "parts/buck_5v.stl",
+   "group": "bought",
+   "color": [
+    0.1,
+    0.3,
+    0.6
+   ],
+   "explode": [
+    0,
+    0,
+    60
+   ]
+  },
+  {
+   "name": "pressure_sensor",
+   "file": "parts/pressure_sensor.stl",
+   "group": "bought",
+   "color": [
+    0.15,
+    0.15,
+    0.15
+   ],
+   "explode": [
+    0,
+    0,
+    60
+   ]
+  },
+  {
+   "name": "gauge",
+   "file": "parts/gauge.stl",
+   "group": "bought",
+   "color": [
+    0.75,
+    0.76,
+    0.78
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "gauge_face",
+   "file": "parts/gauge_face.stl",
+   "group": "bought",
+   "color": [
+    0.95,
+    0.95,
+    0.93
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "stop_button",
+   "file": "parts/stop_button.stl",
+   "group": "bought",
+   "color": [
+    0.12,
+    0.12,
+    0.12
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "stop_cap",
+   "file": "parts/stop_cap.stl",
+   "group": "bought",
+   "color": [
+    0.8,
+    0.08,
+    0.08
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "rocker_switch",
+   "file": "parts/rocker_switch.stl",
+   "group": "bought",
+   "color": [
+    0.1,
+    0.1,
+    0.1
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "status_led",
+   "file": "parts/status_led.stl",
+   "group": "bought",
+   "color": [
+    0.1,
+    0.9,
+    0.3
+   ],
+   "explode": [
+    0,
+    0,
+    90
+   ]
+  },
+  {
+   "name": "dc_jack",
+   "file": "parts/dc_jack.stl",
+   "group": "bought",
+   "color": [
+    0.2,
+    0.2,
+    0.2
+   ],
+   "explode": [
+    0,
+    40,
+    0
+   ]
+  },
+  {
+   "name": "relief_valve",
+   "file": "parts/relief_valve.stl",
+   "group": "bought",
+   "color": [
+    0.8,
+    0.65,
+    0.3
+   ],
+   "explode": [
+    40,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "tubing",
+   "file": "parts/tubing.stl",
+   "group": "bought",
+   "color": [
+    0.85,
+    0.88,
+    0.9
+   ],
+   "explode": [
+    0,
+    0,
+    35
+   ]
+  }
+ ]
+}
